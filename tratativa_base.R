@@ -59,3 +59,4 @@ head(tweets_df)
 
 fwrite(tweets_df,"D:/Faculdade/TCC e IC/cleaned_tweets.csv")
 
+#Testando git

@@ -58,5 +58,3 @@ tweets_df$created_at <- as.Date(as.character(tweets_df$created_at), format = "%d
 head(tweets_df)
 
 fwrite(tweets_df,"D:/Faculdade/TCC e IC/cleaned_tweets.csv")
-
-#Testando git

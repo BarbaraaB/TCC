@@ -1,8 +1,8 @@
+install.packages("stopwords")
+install.packages("tm")
 library(data.table)
 library(jsonlite)
 library(readr)
-install.packages("stopwords")
-install.packages("tm")
 require(stringr)
 require("tm")
 
@@ -23,6 +23,7 @@ mmm_to_mm <- function(mmm) {
            "Apr" = "04",
            "May" = "05",
            "Jun" = "06",
+           
            "Jul" = "07",
            "Aug" = "08",
            "Sep" = "09",
@@ -45,12 +46,13 @@ for (I in 1:N){
                                    str_sub(tweets_df$created_at[I], 27, 30),sep="-",collapse=NULL)
   #Remove breaklines
   tweets_df$full_text[I] <- gsub("\r?\n|\r", " ", tweets_df$full_text[I])
-  #Remove special charaters  
-  tweets_df$full_text[I] <- gsub("[][!#$%()*,.:;<=>@^_`|~.{}]", " ", tweets_df$full_text[I])
+  #Remove URLs
+  #str_remove_all(tweets_df$full_text[I], "(?:https |http).*:(.*)?([^/]+).*")
+  tweets_df$full_text[I] <- gsub('http.* *', '', tweets_df$full_text[I])
+  #Remove special characters  
+  tweets_df$full_text[I] <- gsub("[][!?#$%()*,.;<=>@^_`|~.{}]", " ", tweets_df$full_text[I])
   #Remove stopwords 
   tweets_df$full_text[I] <- removeWords(tolower(tweets_df$full_text[I]),stop_words)
-  #Remove URLs
-  str_remove_all(tweets_df$full_text[I], "(?:https |http).*:(.*)?([^/]+).*")
 }
 #Formats date in YYYY-MM-DD
 tweets_df$created_at <- as.Date(as.character(tweets_df$created_at), format = "%d-%m-%Y")

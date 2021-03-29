@@ -4,10 +4,14 @@ install.packages("syuzhet")
 install.packages('pander')
 install.packages("tidyverse")
 install.packages("lubridate")
+install.packages("wordcloud")
+install.packages("tm")
 library(syuzhet)
 library(readr)
 library(tidyverse)
 library(lubridate)
+library(wordcloud)
+library(tm)
 ```
 
 ```{r Import Tweets, include=FALSE}
@@ -15,30 +19,77 @@ library(lubridate)
 cleaned_tweets <- read_csv("D:/Faculdade/TCC e IC/cleaned_tweets.csv")
 
 #only part of the base, for testing
-cleaned_tweets <- slice_sample(cleaned_tweets, n = 1000, replace = FALSE)
+cleaned_tweets <- slice_sample(cleaned_tweets, n = 10000, replace = FALSE)
 
 # # of lines
 N <- length(cleaned_tweets$created_at)
 ```
 
+```{r Frequency of Words}
+corpus <- Corpus(VectorSource(cleaned_tweets$full_text))
+tdm <- TermDocumentMatrix(corpus)
+tdm <- as.matrix(tdm)
+tdm_c <- tdm[nchar(rownames(tdm)) < 11,]
+
+m <- as.matrix(tdm)
+v <- sort(rowSums(m),decreasing=TRUE)
+d <- data.frame(word = names(v),freq=v)
+head(d, 300)
+```
+
 ```{r Extract Sentiments, include=FALSE}
 #extracts the feeling of every word from the tweet
 sentiment <- get_nrc_sentiment(cleaned_tweets$full_text, language = "portuguese")
+```
 
+```{r formatting dataframe}
 #dataframe of the tweet date + the extraction of emotions
 sentiment_df <- bind_cols(cleaned_tweets[,"created_at"],sentiment)
 
+#rename columns with portuguese words of sentiments
+sentiment_df <- sentiment_df %>% 
+  rename(
+    raiva = anger,
+    ansiedade = anticipation,
+    nojo = disgust, 
+    medo = fear,
+    alegria = joy,
+    tristeza = sadness, 
+    surpresa = surprise, 
+    esperanca = trust,
+    negativo = negative, 
+    positivo = positive
+  )
+
+#Just sentiments
 #grouping the dataframe months together with the sum of emotions
 sentiment_month <- sentiment_df %>% 
   group_by(mes = month(created_at, label = TRUE, abbr = TRUE)) %>% 
-  summarise(across(.cols = anger:trust, sum))
+  summarise(across(.cols = raiva:esperanca, sum))
 
 #database on longer format for chart
-sentiment_month_longer <- pivot_longer(sentiment_month, anger:trust)
+sentiment_month_longer <- pivot_longer(sentiment_month, raiva:esperanca)
+ 
+#Just positive and negative
+#grouping the dataframe months together with the sum of positive and negative
+pos_neg_month <- sentiment_df %>% 
+  group_by(mes = month(created_at, label = TRUE, abbr = TRUE)) %>% 
+  summarise(across(.cols = negativo:positivo, sum))
 
+#database on longer format for chart
+pos_neg_month_longer <- pivot_longer(pos_neg_month, negativo:positivo)
 ```
 
 
-#scatter plot
-g <- ggplot(sentiment_month_longer)+geom_point(aes(x=mes, y=value, color = name))
-ggsave("D:/Faculdade/TCC e IC/Imagens/grafico_dispers.png", g)
+
+```{r}
+#line plot
+ggplot(sentiment_month_longer) + aes(x=mes, y=value, color = name, group=name) + geom_line() + geom_point()
+ggplot(pos_neg_month_longer) + aes(x=mes, y=value, color = name, group=name) + geom_line() + geom_point()
+
+wordcloud(words = d$word, freq = d$freq, max.words = 250, random.order = FALSE)
+comparison.cloud(tdm_c, random.order=FALSE, max.words=10)
+
+#ggsave("D:/Faculdade/TCC e IC/Imagens/grafico_dispers.png", g)
+```
+

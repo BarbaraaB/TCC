@@ -26,10 +26,12 @@ N <- length(cleaned_tweets$created_at)
 ```
 
 ```{r Frequency of Words}
-corpus <- Corpus(VectorSource(cleaned_tweets$full_text))
-tdm <- TermDocumentMatrix(corpus)
-tdm <- as.matrix(tdm)
-tdm_c <- tdm[nchar(rownames(tdm)) < 11,]
+# create corpus
+corpus = Corpus(VectorSource(cleaned_tweets$full_text))
+# create term-document matrix
+tdm = TermDocumentMatrix(corpus)
+# convert as matrix
+tdm = as.matrix(tdm)
 
 m <- as.matrix(tdm)
 v <- sort(rowSums(m),decreasing=TRUE)
@@ -83,12 +85,20 @@ pos_neg_month_longer <- pivot_longer(pos_neg_month, negativo:positivo)
 
 
 ```{r}
-#line plot
-ggplot(sentiment_month_longer) + aes(x=mes, y=value, color = name, group=name) + geom_line() + geom_point()
-ggplot(pos_neg_month_longer) + aes(x=mes, y=value, color = name, group=name) + geom_line() + geom_point()
+#line plot sentiment
+ggplot(sentiment_month_longer) + 
+  aes(x=mes, y=value, color = name, group=name) + 
+  geom_line() + 
+  geom_point()
 
-wordcloud(words = d$word, freq = d$freq, max.words = 250, random.order = FALSE)
-comparison.cloud(tdm_c, random.order=FALSE, max.words=10)
+#line plot positive and negative
+ggplot(pos_neg_month_longer) + 
+  aes(x=mes, y=value, color = name, group=name) + 
+  geom_line() + 
+  geom_point()
+
+#Word cloud 
+wordcloud(words = d$word, freq = d$freq, max.words = 200, random.order = FALSE, color = brewer.pal(11,"RdGy"))
 
 #ggsave("D:/Faculdade/TCC e IC/Imagens/grafico_dispers.png", g)
 ```

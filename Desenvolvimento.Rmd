@@ -1,17 +1,19 @@
 #Install Libs
 ```{r Libs, include=FALSE}
+devtools::install_github("hadley/emo")
 install.packages("syuzhet")
-install.packages('pander')
 install.packages("tidyverse")
 install.packages("lubridate")
 install.packages("wordcloud")
 install.packages("tm")
+install.packages("devtools")
 library(syuzhet)
 library(readr)
 library(tidyverse)
 library(lubridate)
 library(wordcloud)
 library(tm)
+library(emo)
 ```
 
 ```{r Import Tweets, include=FALSE}
@@ -25,6 +27,15 @@ cleaned_tweets <- slice_sample(cleaned_tweets, n = 10000, replace = FALSE)
 N <- length(cleaned_tweets$created_at)
 ```
 
+```{r}
+#To emojis used
+emojis <- cleaned_tweets %>%
+  mutate(emoji = ji_extract_all(cleaned_tweets$full_text)) %>%
+  unnest(cols = c(emoji)) %>%
+  count(emoji, sort = TRUE) %>%
+  top_n(10)
+```
+
 ```{r Frequency of Words}
 # create corpus
 corpus = Corpus(VectorSource(cleaned_tweets$full_text))
@@ -36,20 +47,17 @@ tdm = as.matrix(tdm)
 m <- as.matrix(tdm)
 v <- sort(rowSums(m),decreasing=TRUE)
 d <- data.frame(word = names(v),freq=v)
-head(d, 300)
+#head(d, 300)
 ```
 
 ```{r Extract Sentiments, include=FALSE}
-#extracts the feeling of every word from the tweet
+#extracts the feeling of every word from the tweet from Saif Mohammad's NRC Emotion lexicon
 sentiment <- get_nrc_sentiment(cleaned_tweets$full_text, language = "portuguese")
 ```
 
 ```{r formatting dataframe}
-#dataframe of the tweet date + the extraction of emotions
-sentiment_df <- bind_cols(cleaned_tweets[,"created_at"],sentiment)
-
 #rename columns with portuguese words of sentiments
-sentiment_df <- sentiment_df %>% 
+sentiment <- sentiment %>% 
   rename(
     raiva = anger,
     ansiedade = anticipation,
@@ -63,9 +71,32 @@ sentiment_df <- sentiment_df %>%
     positivo = positive
   )
 
+#transpose sentiment to list the emotions by rows
+sentiment_transp<-data.frame(t(sentiment))
+
+#sum of sentiments
+sentiment_sum <- data.frame(sort(rowSums(sentiment_transp),decreasing=TRUE))
+
+#rename column
+sentiment_sum <- sentiment_sum %>% 
+  rename(
+    sum = sort.rowSums.sentiment_transp...decreasing...TRUE.
+  )
+#add 1 colunm with name of sentiment
+sentiment_sum <- cbind("sentiment" = rownames(sentiment_sum), sentiment_sum)
+
+# # of sentiments
+count_sentiment <- sentiment_sum[3:10,]
+
+# # of positive and negative
+count_pos_neg <- sentiment_sum[1:2,]
+
+#dataframe of the tweet date + the extraction of emotions
+sentiment_dt <- bind_cols(cleaned_tweets[,"created_at"],sentiment)
+
 #Just sentiments
 #grouping the dataframe months together with the sum of emotions
-sentiment_month <- sentiment_df %>% 
+sentiment_month <- sentiment_dt %>% 
   group_by(mes = month(created_at, label = TRUE, abbr = TRUE)) %>% 
   summarise(across(.cols = raiva:esperanca, sum))
 
@@ -74,14 +105,13 @@ sentiment_month_longer <- pivot_longer(sentiment_month, raiva:esperanca)
  
 #Just positive and negative
 #grouping the dataframe months together with the sum of positive and negative
-pos_neg_month <- sentiment_df %>% 
+pos_neg_month <- sentiment_dt %>% 
   group_by(mes = month(created_at, label = TRUE, abbr = TRUE)) %>% 
   summarise(across(.cols = negativo:positivo, sum))
 
 #database on longer format for chart
 pos_neg_month_longer <- pivot_longer(pos_neg_month, negativo:positivo)
 ```
-
 
 
 ```{r}
@@ -97,8 +127,24 @@ ggplot(pos_neg_month_longer) +
   geom_line() + 
   geom_point()
 
+ggplot(count_sentiment)+
+  aes(x=sentiment, y=sum, fill = sentiment)+
+  coord_flip()+
+  geom_col()
+
+ggplot(count_pos_neg)+
+  aes(x=sentiment, y=sum, fill = sentiment)+
+  coord_flip()+
+  geom_col()
+
+plot(emojis$n,emojis$emoji)
+ggplot(emojis)+
+  aes(x=emoji, y=n, fill = emoji)+
+  geom_col()+
+  theme(legend.text=element_text(size=20))
+
 #Word cloud 
-wordcloud(words = d$word, freq = d$freq, max.words = 200, random.order = FALSE, color = brewer.pal(11,"RdGy"))
+wordcloud(words = d$word, freq = d$freq, max.words = 200, random.order = FALSE, color=brewer.pal(11,"Spectral"))
 
 #ggsave("D:/Faculdade/TCC e IC/Imagens/grafico_dispers.png", g)
 ```

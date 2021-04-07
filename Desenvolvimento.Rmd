@@ -14,6 +14,9 @@ library(lubridate)
 library(wordcloud)
 library(tm)
 library(emo)
+
+install.packages("wordcloud")
+library(wesanderson)
 ```
 
 ```{r Import Tweets, include=FALSE}
@@ -27,8 +30,8 @@ cleaned_tweets <- slice_sample(cleaned_tweets, n = 10000, replace = FALSE)
 N <- length(cleaned_tweets$created_at)
 ```
 
-```{r}
-#To emojis used
+```{r include=FALSE}
+#Top emojis used
 emojis <- cleaned_tweets %>%
   mutate(emoji = ji_extract_all(cleaned_tweets$full_text)) %>%
   unnest(cols = c(emoji)) %>%
@@ -71,10 +74,15 @@ sentiment <- sentiment %>%
     positivo = positive
   )
 
+#dataframe of the tweet date + the extraction of emotions
+sentiment_dt <- bind_cols(cleaned_tweets[,"created_at"],sentiment)
+```
+
+```{r general analysis, include=FALSE}
 #transpose sentiment to list the emotions by rows
 sentiment_transp<-data.frame(t(sentiment))
 
-#sum of sentiments
+#sum total of sentiments
 sentiment_sum <- data.frame(sort(rowSums(sentiment_transp),decreasing=TRUE))
 
 #rename column
@@ -85,66 +93,100 @@ sentiment_sum <- sentiment_sum %>%
 #add 1 colunm with name of sentiment
 sentiment_sum <- cbind("sentiment" = rownames(sentiment_sum), sentiment_sum)
 
-# # of sentiments
+# count of sentiments
 count_sentiment <- sentiment_sum[3:10,]
 
-# # of positive and negative
+# count of positive and negative
 count_pos_neg <- sentiment_sum[1:2,]
+```
 
-#dataframe of the tweet date + the extraction of emotions
-sentiment_dt <- bind_cols(cleaned_tweets[,"created_at"],sentiment)
-
+```{r Just Sentiments per month, include=FALSE}
 #Just sentiments
-#grouping the dataframe months together with the sum of emotions
+#grouping the months of the dataframe with the sum of emotions divided by month and by emotion
 sentiment_month <- sentiment_dt %>% 
   group_by(mes = month(created_at, label = TRUE, abbr = TRUE)) %>% 
   summarise(across(.cols = raiva:esperanca, sum))
 
+#total sum of feelings, divided by month
+x <- apply(sentiment_month[,2:9],1,sum)
+sentiment_month$total <- x 
+
+#dividing the total by the partials, to find the proportional value of each sentiment
+sentiment_month_prop <- sentiment_month %>%
+  mutate(across(.cols = raiva:esperanca, ~ round(.x/total*100,2))) 
+
+#drop total column
+sentiment_month_prop$total <- NULL
+  
 #database on longer format for chart
-sentiment_month_longer <- pivot_longer(sentiment_month, raiva:esperanca)
- 
+sentiment_month_longer <- pivot_longer(sentiment_month_prop, raiva:esperanca)
+```
+
+```{r just pos and neg per month}
 #Just positive and negative
 #grouping the dataframe months together with the sum of positive and negative
 pos_neg_month <- sentiment_dt %>% 
   group_by(mes = month(created_at, label = TRUE, abbr = TRUE)) %>% 
   summarise(across(.cols = negativo:positivo, sum))
 
+#total sum of feelings, divided by month
+x <- apply(pos_neg_month[,2:3],1,sum)
+pos_neg_month$total <- x 
+
+#dividing the total by the partials, to find the proportional value of each sentiment
+pos_neg_month_prop <- pos_neg_month %>%
+  mutate(across(.cols = negativo:positivo, ~ round(.x/total*100,2))) 
+
+#drop total column
+pos_neg_month_prop$total <- NULL
+
 #database on longer format for chart
-pos_neg_month_longer <- pivot_longer(pos_neg_month, negativo:positivo)
+pos_neg_month_longer <- pivot_longer(pos_neg_month_prop, negativo:positivo)
 ```
 
 
-```{r}
+```{r Graphics}
 #line plot sentiment
-ggplot(sentiment_month_longer) + 
+g <- ggplot(sentiment_month_longer) + 
   aes(x=mes, y=value, color = name, group=name) + 
   geom_line() + 
   geom_point()
+g + scale_colour_manual(
+    values=c("#120f28","#2e1e5c","#6d4299","#8623ae","#de39e9","#008281","#FF607D","#5E6687"),
+    aesthetics = "fill", 
+    breaks = waiver())
 
 #line plot positive and negative
 ggplot(pos_neg_month_longer) + 
   aes(x=mes, y=value, color = name, group=name) + 
-  geom_line() + 
-  geom_point()
+  geom_line(data = subset(pos_neg_month_longer, name =="negativo")) + 
+  geom_point(data = subset(pos_neg_month_longer, name =="negativo"))+
+  scale_color_brewer(palette = "Dark2") 
 
 ggplot(count_sentiment)+
-  aes(x=sentiment, y=sum, fill = sentiment)+
+  aes(x=reorder(sentiment,sum), y=sum, fill = sentiment)+
   coord_flip()+
-  geom_col()
+  geom_col()+
+  scale_color_brewer(palette = "Dark2") 
 
 ggplot(count_pos_neg)+
-  aes(x=sentiment, y=sum, fill = sentiment)+
-  coord_flip()+
-  geom_col()
+  aes(x="", y=sum, fill = sentiment)+
+  geom_bar(width = 1, stat = "identity")+
+  coord_polar("y", start=0)+
+  scale_fill_manual(values=c("#120f28","#6d4299"))
 
-plot(emojis$n,emojis$emoji)
 ggplot(emojis)+
-  aes(x=emoji, y=n, fill = emoji)+
+  aes(x=reorder(emoji,-n), y=n, fill = emoji)+
   geom_col()+
-  theme(legend.text=element_text(size=20))
+  theme(legend.text=element_text(size=20))+
+  scale_color_brewer(palette = "Dark2") 
+
+ggplot(emojis)+
+  aes(x=reorder(emoji,-n), y=n, fill = emoji)+
+  geom
 
 #Word cloud 
-wordcloud(words = d$word, freq = d$freq, max.words = 200, random.order = FALSE, color=brewer.pal(11,"Spectral"))
+wordcloud(words = d$word, freq = d$freq, max.words = 200, random.order = FALSE, color=brewer.pal(8,"Dark2"))
 
 #ggsave("D:/Faculdade/TCC e IC/Imagens/grafico_dispers.png", g)
 ```

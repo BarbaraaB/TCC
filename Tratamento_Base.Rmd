@@ -1,7 +1,11 @@
 
-```{r Libs, include=FALSE}
+```{r Install Packages, include=FALSE}
 install.packages("stopwords")
 install.packages("tm")
+```
+
+
+```{r Libs, include=FALSE}
 library(data.table)
 library(jsonlite)
 library(readr)
@@ -44,9 +48,11 @@ mmm_to_mm <- function(mmm) {
 ```{r Stop Words}
 #Stopwords from Neutral Language Tool Kit lexicon dictionary 
 stop_words <- stopwords::stopwords("pt", source = "nltk")
+#Another stopwords selected manually. Remove "coronavirus" words because is redundant
 stop_words_m <- c("pra",	"vai",	"ser",	"tá",	"ter",	"aí",	"é",	"né",	"diz",	"lá",	"…",	
                   "quer",	"tão",	"vem",	"vão",	"pro",	"vez",	"tô",	"•",	"dá",	"“",	"†",	
-                  "🇧🇷",	"uns",	"vê",	"daí",	"viu",	"tal",	"”", "hein")
+                  "🇧🇷",	"uns",	"vê",	"daí",	"viu",	"tal",	"”", "hein", "covid-19",	"covid19",
+                  "coronavirus",	"coronavírus",	"covid",	"…",	"corona")
 #head(stop_words)
 ```
 

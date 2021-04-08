@@ -1,26 +1,27 @@
 ```{r Install Libs}
 devtools::install_github("hadley/emo")
+devtools::install_github("lchiffon/wordcloud2")
 install.packages("syuzhet")
 install.packages("tidyverse")
 install.packages("lubridate")
-install.packages("wordcloud")
 install.packages("tm")
 install.packages("devtools")
 install.packages("ggthemes")
 install.packages("extrafont")
+install.packages("scales")
 ```
-
 
 ```{r Libs, include=FALSE}
 library(syuzhet)
 library(readr)
 library(tidyverse)
 library(lubridate)
-library(wordcloud)
 library(tm)
 library(emo)
 library(ggthemes)
 library(extrafont)
+library(wordcloud2)
+library(scales)
 ```
 
 ```{r Import Tweets, include=FALSE}
@@ -43,6 +44,7 @@ emojis <- cleaned_tweets %>%
   mutate(emoji = ji_extract_all(cleaned_tweets$full_text)) %>%
   unnest(cols = c(emoji)) %>%
   count(emoji, sort = TRUE) %>%
+  na.omit() %>%
   top_n(10)
 ```
 
@@ -105,6 +107,15 @@ count_sentiment <- sentiment_sum[3:10,]
 
 # count of positive and negative
 count_pos_neg <- sentiment_sum[1:2,]
+
+x <- apply(count_pos_neg[2],2,sum)
+count_pos_neg$total <- x 
+
+count_pos_neg <- count_pos_neg %>%
+mutate(across(.cols = Soma:total, ~ round(.x/total*100,2))) 
+
+count_pos_neg$total <- NULL
+
 ```
 
 ```{r Just Sentiments per month, include=FALSE}
@@ -168,27 +179,28 @@ pos_neg_month_longer <- pos_neg_month_longer %>%
 #line plot sentiment
 colors <- c("#FFC213","#2AB101","#179D8B","#090b7a","#0F4132","#900000","#FF3CC6","#8B3B79","#FED8B3","#B8F9A2")
 
-colors_wc <- c("#179D8B","#090b7a","#0F4132","#900000","#FF3CC6","#8B3B79","#2AB101")
-
 #Line plot per month
-ggplot(sentiment_month_longer) + 
+g <- ggplot(sentiment_month_longer) + 
   aes(x=mes, y=value, color=Sentimento, group=Sentimento) + 
   geom_line() + 
   geom_point() +
-  labs(title = "Nível Sentimental dos Tweets por Mês",
+  labs(title = "Proporção de Tweets em Cada Sentimento por Mês",
        x = "Mês",
        y = "Percentual",
        color = "Sentimento")+
-  theme_fivethirtyeight()+
   theme(axis.title = element_text())+
-  scale_colour_manual(values=colors)
+  scale_colour_manual(values=colors)+
+  theme_fivethirtyeight()
+
+#Export chart
+ggsave("D:/Faculdade/TCC e IC/Imagens/Proporção de Tweets em Cada Sentimento por Mês.png", g)
 
 #line plot positive and negative
-ggplot(pos_neg_month_longer) + 
+g<- ggplot(pos_neg_month_longer) + 
   aes(x=mes, y=value, color=Sentimento, group=Sentimento) + 
   geom_line(data = subset(pos_neg_month_longer, Sentimento =="Negativo")) + 
   geom_point(data = subset(pos_neg_month_longer, Sentimento =="Negativo"))+
-  labs(title = "Tweets Negativos pos Mês",
+  labs(title = "Tweets Negativos por Mês",
        x = "Mês",
        y = "Percentual",
        color = "Sentimento")+
@@ -196,43 +208,67 @@ ggplot(pos_neg_month_longer) +
   theme(axis.title = element_text())+
   scale_colour_manual(values="#900000")
 
-ggplot(count_sentiment)+
+#Export chart
+ggsave("D:/Faculdade/TCC e IC/Imagens/Tweets Negativos por Mês.png", g)
+
+#bar plot with summarise of sentiments
+g<- ggplot(count_sentiment)+
   aes(x=reorder(Sentimento,Soma), y=Soma, fill = Sentimento)+
   coord_flip()+
   geom_col()+
-  labs(title = "X",
-       x = "Sentimento",
+  labs(title = "Número Absoluto de Tweets em Cada Sentimento",
+       subtitle = "Período: 2020",
+       x = NULL,
        y = "Quantidade",
        color = "Sentimento")+
   theme_fivethirtyeight()+
   theme(axis.title = element_text())+
   scale_fill_manual(values=colors)
 
-ggplot(count_pos_neg)+
-  aes(x="", y=Soma, fill = Sentimento)+
-  geom_bar(width = 1, stat = "identity")+
-  coord_polar("y", start=0)+
-  labs(title = "X",
-     x = "Sentimento",
-     y = "Quantidade",
-     color = "Sentimento")+
-  theme(axis.title = element_text())+
-  scale_fill_manual(values=c("#090b7a","#900000"))
+#Export chart
+ggsave("D:/Faculdade/TCC e IC/Imagens/Número Absoluto de Tweets em Cada Sentimento.png", g)
 
-ggplot(emojis)+
+#pie chart of negative and positive sentiments
+g <- ggplot(count_pos_neg)+
+  aes(x="", y=Soma, fill = Sentimento)+
+  geom_bar(stat="identity", width=1, color="white")+
+  labs(title = "Percentual de Tweets Positivos e Negativos",
+       subtitle = "Período: 2020",
+       x = NULL,
+       y = NULL,
+     color = "Sentimento")+
+  coord_polar("y", start=0)+
+  geom_text(aes(y = Soma, label = Soma), color = "white", size=6, position = position_stack(vjust = 0.5))+
+  scale_fill_manual(values=c("#090b7a","#900000"))+
+  theme(axis.title = element_text())+
+  theme_fivethirtyeight() + 
+  theme(axis.line = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank())
+
+#Export chart
+ggsave("D:/Faculdade/TCC e IC/Imagens/Percentual de Tweets Positivos e Negativos.png", g)
+
+#Bar plot with 10 common emojis in database 
+g <- ggplot(emojis)+
   aes(x=reorder(emoji,-n), y=n, fill = emoji)+
   geom_col()+
-  labs(title = "Emojis mais Frequentes",
+  labs(title = "Emojis mais Frequentes em Números Absolutos",
+       subtitle = "Período: 2020",
        x = NULL,
        y = NULL,
        color = "Sentimento")+
   theme(legend.text=element_text(size=30))+
   theme_fivethirtyeight()+
-  scale_fill_manual(values=colors)
+  scale_fill_manual(values=colors)+
+  theme(axis.text = element_blank())
+
+#Export chart
+ggsave("D:/Faculdade/TCC e IC/Imagens/Emojis mais Frequentes em Números Absolutos.png", g)
 
 #Word cloud 
-wordcloud(words = d$word, freq = d$freq, max.words = 200, random.order = FALSE, color=colors_wc)
+#wordcloud(words = d$word, freq = d$freq, max.words = 300, scale=c(4,.5), random.order = FALSE, color=colors_wc)
+wordcloud2(data = d[1:170,], size = 0.6, minRotation = -pi/100, maxRotation = pi/100, color = 'random-dark')
 
-#ggsave("D:/Faculdade/TCC e IC/Imagens/grafico_dispers.png", g)
 ```
 

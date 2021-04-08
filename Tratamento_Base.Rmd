@@ -52,7 +52,9 @@ stop_words <- stopwords::stopwords("pt", source = "nltk")
 stop_words_m <- c("pra",	"vai",	"ser",	"tá",	"ter",	"aí",	"é",	"né",	"diz",	"lá",	"…",	
                   "quer",	"tão",	"vem",	"vão",	"pro",	"vez",	"tô",	"•",	"dá",	"“",	"†",	
                   "🇧🇷",	"uns",	"vê",	"daí",	"viu",	"tal",	"”", "hein", "covid-19",	"covid19",
-                  "coronavirus",	"coronavírus",	"covid",	"…",	"corona")
+                  "coronavirus",	"coronavírus",	"covid",	"…",	"corona", "dia",	"aqui",	"agora",	"hoje",	
+                  "todo",	"todos",	"faz",	"ver",	"porque",	"vou",	"pois",	"desse",	"olha",	"coisa",	
+                  "cada",	"fez",	"nao",	"dar",	"sei")
 #head(stop_words)
 ```
 
@@ -67,7 +69,6 @@ for (I in 1:N){
   #Remove breaklines
   tweets_df$full_text[I] <- gsub("\r?\n|\r", " ", tweets_df$full_text[I])
   #Remove URLs
-  #str_remove_all(tweets_df$full_text[I], "(?:https |http).*:(.*)?([^/]+).*")
   tweets_df$full_text[I] <- gsub('http.* *', '', tweets_df$full_text[I])
   #Remove special characters  
   tweets_df$full_text[I] <- gsub("[][!?#$%()*,.;<=>@^_`|~.{}]", " ", tweets_df$full_text[I])

@@ -32,7 +32,8 @@ library(scales)
 cleaned_tweets <- read_csv("D:/Faculdade/TCC e IC/cleaned_tweets.csv")
 
 #only part of the base, for testing
-cleaned_tweets <- slice_sample(cleaned_tweets, n = 10000, replace = FALSE)
+#cleaned_tweets <- slice_sample(cleaned_tweets, n = 10000, replace = FALSE)
+cleaned_tweets_slice <- slice_sample(cleaned_tweets, n = 23130, replace = FALSE)
 
 # # of lines
 N <- length(cleaned_tweets$created_at)
@@ -41,7 +42,7 @@ N <- length(cleaned_tweets$created_at)
 ```{r include=FALSE}
 #Top emojis used
 emojis <- cleaned_tweets %>%
-  mutate(emoji = ji_extract_all(cleaned_tweets$full_text)) %>%
+  mutate(emoji = ji_extract_all(cleaned_tweets_slice$full_text)) %>%
   unnest(cols = c(emoji)) %>%
   count(emoji, sort = TRUE) %>%
   na.omit() %>%
@@ -188,9 +189,10 @@ g <- ggplot(sentiment_month_longer) +
        x = "Mês",
        y = "Percentual",
        color = "Sentimento")+
+  theme_fivethirtyeight()+
   theme(axis.title = element_text())+
-  scale_colour_manual(values=colors)+
-  theme_fivethirtyeight()
+  scale_colour_manual(values=colors)
+  
 
 #Export chart
 ggsave("D:/Faculdade/TCC e IC/Imagens/Proporção de Tweets em Cada Sentimento por Mês.png", g)
@@ -255,13 +257,12 @@ g <- ggplot(emojis)+
   geom_col()+
   labs(title = "Emojis mais Frequentes em Números Absolutos",
        subtitle = "Período: 2020",
-       x = NULL,
-       y = NULL,
+       x = "Emojis",
+       y = "Quantidade",
        color = "Sentimento")+
-  theme(legend.text=element_text(size=30))+
   theme_fivethirtyeight()+
-  scale_fill_manual(values=colors)+
-  theme(axis.text = element_blank())
+  theme(axis.title = element_text())+
+  scale_fill_manual(values=colors)
 
 #Export chart
 ggsave("D:/Faculdade/TCC e IC/Imagens/Emojis mais Frequentes em Números Absolutos.png", g)

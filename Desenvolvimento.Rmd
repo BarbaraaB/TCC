@@ -42,7 +42,7 @@ N <- length(cleaned_tweets$created_at)
 ```{r include=FALSE}
 #Top emojis used
 emojis <- cleaned_tweets %>%
-  mutate(emoji = ji_extract_all(cleaned_tweets_slice$full_text)) %>%
+  mutate(emoji = ji_extract_all(cleaned_tweets$full_text)) %>%
   unnest(cols = c(emoji)) %>%
   count(emoji, sort = TRUE) %>%
   na.omit() %>%
@@ -51,7 +51,7 @@ emojis <- cleaned_tweets %>%
 
 ```{r Frequency of Words}
 # create corpus
-corpus = Corpus(VectorSource(cleaned_tweets$full_text))
+corpus = Corpus(VectorSource(cleaned_tweets_slice$full_text))
 # create term-document matrix
 tdm = TermDocumentMatrix(corpus)
 # convert as matrix
